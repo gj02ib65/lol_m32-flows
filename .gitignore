@@ -1,0 +1,9 @@
+# Windows
+update.log
+update.log.bak
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
