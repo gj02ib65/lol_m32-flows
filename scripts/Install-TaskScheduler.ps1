@@ -1,8 +1,6 @@
 # Install-TaskScheduler.ps1
-# ONE-TIME SETUP SCRIPT — Run this as Administrator on the church Windows host.
-# Registers the M32 flows auto-updater as a Windows Scheduled Task.
-
-#Requires -RunAsAdministrator
+# ONE-TIME SETUP SCRIPT — Run this on the church Windows host.
+# No administrator rights required — the task runs as the current user.
 
 $TaskName   = "M32 Flows Auto-Update"
 $ScriptPath = "C:\m32-flows\scripts\Update-M32Flows.ps1"
@@ -32,42 +30,35 @@ if (-not (Test-Path $ScriptPath)) {
 
 Write-Host "[2/3] Found update script at $ScriptPath" -ForegroundColor Green
 
-# --- Step 3: Create the Scheduled Task ---
-# Runs every 15 minutes, at any time, even when no user is logged in.
+# --- Step 3: Register the Scheduled Task using schtasks.exe ---
+# Uses schtasks.exe instead of Register-ScheduledTask so NO admin rights are needed.
+# The task runs as the current logged-in user every Monday at 8:00 AM.
+# If the PC is not on at exactly 8:00 AM, it will run as soon as the user logs in.
 
-$Action  = New-ScheduledTaskAction `
-    -Execute "powershell.exe" `
-    -Argument "-NonInteractive -ExecutionPolicy Bypass -File `"$ScriptPath`""
+$taskCommand = "powershell.exe -NonInteractive -ExecutionPolicy Bypass -File `"$ScriptPath`""
 
-$Trigger = New-ScheduledTaskTrigger -RepetitionInterval (New-TimeSpan -Minutes 15) -Once -At (Get-Date)
+# /f  = force overwrite if task already exists
+# /rl = run level LIMITED (no elevation, works without admin)
+# /sc = schedule WEEKLY, /d = day, /st = start time
+$result = schtasks.exe /create /f `
+    /tn $TaskName `
+    /tr $taskCommand `
+    /sc WEEKLY `
+    /d  MON `
+    /st 08:00 `
+    /rl LIMITED 2>&1
 
-$Settings = New-ScheduledTaskSettingsSet `
-    -ExecutionTimeLimit (New-TimeSpan -Minutes 5) `
-    -RestartCount 3 `
-    -RestartInterval (New-TimeSpan -Minutes 1) `
-    -StartWhenAvailable
-
-# Run as SYSTEM so it works whether or not a user is logged in
-$Principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
-
-# Remove old task if it exists
-if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
-    Write-Host "Removing existing task '$TaskName'..." -ForegroundColor Yellow
-    Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "ERROR: Failed to create scheduled task." -ForegroundColor Red
+    Write-Host $result -ForegroundColor Red
+    exit 1
 }
-
-Register-ScheduledTask `
-    -TaskName  $TaskName `
-    -Action    $Action `
-    -Trigger   $Trigger `
-    -Settings  $Settings `
-    -Principal $Principal `
-    -Description "Pulls the latest m32 Node-RED flows from GitHub and restarts the container if flows.json changed." | Out-Null
 
 Write-Host "[3/3] Scheduled Task '$TaskName' registered successfully." -ForegroundColor Green
 Write-Host ""
 Write-Host "Setup complete!" -ForegroundColor Cyan
-Write-Host "The flows will now auto-update every 15 minutes." -ForegroundColor Cyan
+Write-Host "The flows will auto-update every Monday at 8:00 AM." -ForegroundColor Cyan
+Write-Host "(No admin rights were required.)" -ForegroundColor Gray
 Write-Host ""
 Write-Host "To verify: Open Task Scheduler and look for '$TaskName'" -ForegroundColor Gray
 Write-Host "To check logs: notepad C:\m32-flows\update.log" -ForegroundColor Gray

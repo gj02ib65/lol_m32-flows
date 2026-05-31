@@ -14,7 +14,10 @@ These flows power the mute-sync system that mirrors Front of House (FOH) console
 
 ## 🚀 Church Host Setup (One-Time)
 
-These steps are only needed once on the church Windows PC. After setup, everything updates automatically.
+These steps are only needed once on the church Windows PC. After setup, everything updates automatically every Monday at 8:00 AM.
+
+> [!NOTE]
+> **No administrator rights are required.** The setup script runs as the currently logged-in user.
 
 ### Prerequisites
 - [Git for Windows](https://git-scm.com/download/win) installed
@@ -23,19 +26,23 @@ These steps are only needed once on the church Windows PC. After setup, everythi
 
 ### Steps
 
-**1. Clone this repository to the church PC:**
+**1. Open PowerShell** — no need to run as Administrator. You can open it from the Start menu by searching for `PowerShell`.
+
+**2. Clone this repository to the church PC:**
 ```powershell
 git clone https://github.com/gj02ib65/lol_m32-flows.git C:\m32-flows
 ```
 
-**2. Run the one-time Task Scheduler installer (as Administrator):**
+**3. Run the one-time Task Scheduler installer:**
 ```powershell
-# Right-click PowerShell → "Run as Administrator", then:
 Set-ExecutionPolicy Bypass -Scope Process -Force
 C:\m32-flows\scripts\Install-TaskScheduler.ps1
 ```
 
-**3. That's it.** The church PC will now check for flow updates every 15 minutes automatically, even when no one is logged in.
+> [!IMPORTANT]
+> `Set-ExecutionPolicy Bypass -Scope Process -Force` is required before running the script. This is a **temporary, session-only change** — it only affects the current PowerShell window and resets automatically when you close it. It does not permanently change any system settings.
+
+**4. That's it.** The church PC will now check for flow updates every Monday at 8:00 AM automatically, whenever the user is logged in. If the PC happens to be off or no one is logged in at exactly 8:00 AM, it will run as soon as someone logs in.
 
 ---
 
@@ -44,15 +51,15 @@ C:\m32-flows\scripts\Install-TaskScheduler.ps1
 ```
 You edit flows.json  →  git push to GitHub
                               ↓
-                   Church PC checks every 15 min
-                   (Windows Task Scheduler runs Update-M32Flows.ps1)
+              Church PC checks every Monday at 8:00 AM
+         (Windows Task Scheduler runs Update-M32Flows.ps1)
                               ↓
-              If flows.json changed → container auto-restarts
+          If flows.json changed → container auto-restarts
                               ↓
                      New flows are live ✅
 ```
 
-No one needs to be at church. No Docker rebuild required.
+No one needs to be at church to trigger the update. No Docker image rebuild required.
 
 ---
 
@@ -69,6 +76,19 @@ Or in PowerShell to watch it live:
 Get-Content C:\m32-flows\update.log -Wait -Tail 20
 ```
 
+The log records every check — whether flows changed, whether the container was restarted, and any errors encountered.
+
+---
+
+## 🔁 Re-Running the Installer
+
+If you need to reinstall or update the scheduled task (e.g. after cloning to a new PC), just run the installer again — it will overwrite the existing task safely:
+
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force
+C:\m32-flows\scripts\Install-TaskScheduler.ps1
+```
+
 ---
 
 ## 🛠 For Developers
@@ -77,7 +97,7 @@ To edit the flows:
 
 1. Make your changes to `flows.json` in this repo
 2. Commit and push to `main`
-3. The church PC will pick up changes within 15 minutes automatically
+3. The church PC will pick up changes on the next Monday at 8:00 AM
 
 > [!NOTE]
 > If you need to test locally, use the `task pull` command from the main `m32-utility` repo to sync flows from your running local container back into this file.
