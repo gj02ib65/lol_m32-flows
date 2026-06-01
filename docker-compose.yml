@@ -9,9 +9,8 @@ services:
     network_mode: "host"
     volumes:
       - m32_church_data:/data
-      # Mount this repo directory as the flows source (read-only).
-      # The startup entrypoint in the image copies flows.json into /data/ at container start.
-      # Because docker-compose.yml lives IN the m32-flows repo, "." is the repo root.
+      # This repo directory is mounted read-only as the flows source.
+      # The container's startup script copies flows.json into /data/ at start.
       - .:/opt/m32-flows-src:ro
     environment:
       - TZ=America/Chicago
@@ -19,20 +18,6 @@ services:
       - CONFIG_FILE_PATH=/data/mixer_config.json
     # Loads the custom settings file so Node-RED finds the installed palette nodes.
     command: --settings /opt/m32-logic/settings.js
-
-  watchtower:
-    image: containrrr/watchtower
-    container_name: watchtower
-    restart: always
-    security_opt:
-      - label=disable # Required for Podman to allow socket access
-    volumes:
-      # Rootless Podman on Windows exposes its socket as a named pipe.
-      # If Watchtower fails to connect, run: podman machine inspect
-      # and look for the socket path to use here.
-      - //./pipe/podman-machine-default:/var/run/docker.sock
-    # Check for image updates every Monday at 3 AM
-    command: --schedule "0 0 3 * * 1" --cleanup m32-sync-utility
 
 volumes:
   m32_church_data:
