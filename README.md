@@ -33,16 +33,24 @@ These steps are only needed once on the church Windows PC. After setup, everythi
 git clone https://github.com/gj02ib65/lol_m32-flows.git C:\m32-flows
 ```
 
-**3. Run the one-time Task Scheduler installer:**
+**3. Start the utility for the first time:**
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force
+C:\m32-flows\scripts\Start-M32Utility.ps1
+```
+
+This pulls the latest container image from GitHub and starts Node-RED and Watchtower. After the first run, the containers start automatically whenever the PC boots — you never need to run this script again unless you stop them manually.
+
+**4. Set up automatic weekly flow updates:**
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
 C:\m32-flows\scripts\Install-TaskScheduler.ps1
 ```
 
 > [!IMPORTANT]
-> `Set-ExecutionPolicy Bypass -Scope Process -Force` is required before running the script. This is a **temporary, session-only change** — it only affects the current PowerShell window and resets automatically when you close it. It does not permanently change any system settings.
+> `Set-ExecutionPolicy Bypass -Scope Process -Force` is required before running any script. This is a **temporary, session-only change** — it only affects the current PowerShell window and resets automatically when you close it. It does not permanently change any system settings.
 
-**4. That's it.** The church PC will now check for flow updates every Monday at 8:00 AM automatically, whenever the user is logged in. If the PC happens to be off or no one is logged in at exactly 8:00 AM, it will run as soon as someone logs in.
+**5. That's it.** The church PC will now check for flow updates every Monday at 8:00 AM automatically. Node-RED is accessible at `http://localhost:1880`.
 
 ---
 
